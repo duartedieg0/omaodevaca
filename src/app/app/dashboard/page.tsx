@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import { ComingSoonCard } from "@/components/dashboard/coming-soon-card";
 import { WelcomeCard } from "@/components/dashboard/welcome-card";
 import { getCurrentProfile } from "@/data/profile";
+import { requireUserId } from "@/lib/auth/session";
 
 export const metadata: Metadata = {
   title: "Dashboard",
@@ -33,6 +34,8 @@ const COMING_SOON = [
 ];
 
 export default async function DashboardPage() {
+  // Layout e página renderizam em paralelo: a página não pode depender do guard do layout.
+  await requireUserId();
   const profile = await getCurrentProfile();
   const firstName = profile?.name?.trim().split(/\s+/)[0] || null;
 

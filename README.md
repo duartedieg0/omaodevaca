@@ -31,7 +31,7 @@ supabase/
 **Segurança em camadas:**
 
 1. `src/proxy.ts`: renova os cookies da sessão e redireciona visitantes sem sessão para fora de `/app/**`. É só uma otimização.
-2. Servidor: o layout de `/app` e todas as Server Actions validam a sessão com `supabase.auth.getClaims()`. O id do usuário vem sempre da sessão, nunca do client.
+2. Servidor: o layout de `/app`, toda página e toda Server Action que lê ou altera dados sob `/app` chamam `requireUserId()` (`supabase.auth.getClaims()`), pois layout e página renderizam em paralelo e a página não pode depender do guard do layout. O id do usuário vem sempre da sessão, nunca do client.
 3. Banco: RLS em `profiles` (cada usuário só lê e altera a própria linha) e privilégios por coluna (só `name`, `currency`, `locale` e `timezone` são editáveis).
 
 Componentes nunca chamam o Supabase diretamente para dados de domínio: eles usam as funções de `src/data/`.
@@ -84,7 +84,8 @@ Scripts:
 ### 2. Supabase Dashboard
 
 1. Em **Authentication → Sign In / Providers → Google**, ative o provider e cole o **Client ID** e o **Client Secret**. O *Callback URL* mostrado ali é o mesmo que foi cadastrado no Google.
-2. Em **Authentication → URL Configuration**:
+2. Em **Authentication → Sign In / Providers**, **desative o Email** e confirme que **Phone** e **Anonymous sign-ins** também estão desativados. Esta fase usa exclusivamente o Google; com o Email ligado, qualquer pessoa com a publishable key poderia criar contas fora do Google.
+3. Em **Authentication → URL Configuration**:
    - **Site URL:** a URL de produção (ex.: `https://omaodevaca.vercel.app`). Para desenvolvimento sem produção, `http://localhost:3000`.
    - **Redirect URLs:** veja [Auth URLs](#auth-urls).
 
@@ -104,7 +105,7 @@ pnpm dlx supabase link --project-ref <project-ref>
 pnpm dlx supabase db push
 ```
 
-**Verificando o RLS.** Depois de aplicar, rode `supabase/tests/rls-check.sql` no SQL Editor. O script cria usuários de teste numa transação desfeita no final e precisa terminar com o aviso `Todas as verificações passaram`. Qualquer falha aparece como erro `FALHOU: ...`.
+**Verificando o RLS.** Depois de aplicar, rode `supabase/tests/rls-check.sql` no SQL Editor. O script cria usuários de teste numa transação desfeita no final e termina mostrando `Todas as verificações passaram` (resultado final e aviso). Qualquer falha aparece como erro `FALHOU: ...`.
 
 ## Environment Variables
 
@@ -157,6 +158,7 @@ Use com um projeto Supabase real configurado:
 - [ ] **Avatar:** a foto do Google aparece na sidebar e nas configurações; sem foto, aparecem as iniciais
 - [ ] **Configurações:** alterar o nome mostra o toast "Alterações salvas." e atualiza a sidebar. Nome vazio mostra erro no campo
 - [ ] **Email:** não é editável na UI. O banco recusa a alteração (coberto pelo `rls-check.sql`)
+- [ ] **Providers:** somente Google habilitado; Email, Phone e Anonymous desativados
 - [ ] **RLS:** `supabase/tests/rls-check.sql` termina com "Todas as verificações passaram"
 - [ ] **Erro de login:** `/auth/callback` sem `code` leva a `/auth/erro` com mensagem amigável
 - [ ] **Tema:** Claro/Escuro/Sistema funcionam no header e nas configurações, persistem após recarregar e não piscam

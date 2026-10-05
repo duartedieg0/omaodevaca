@@ -1,7 +1,8 @@
 -- Verificação manual do trigger, do RLS e dos privilégios de public.profiles.
 -- Rode no SQL Editor do Supabase (ou via psql) DEPOIS de aplicar as migrations.
 -- Tudo acontece numa transação desfeita no final: nenhum dado permanece.
--- Sucesso: a execução termina com o aviso "Todas as verificações passaram".
+-- Sucesso: a execução termina mostrando "Todas as verificações passaram"
+-- (aviso e resultado final). Só chega lá se nenhuma verificação falhar.
 -- Falha: um erro "FALHOU: ..." interrompe o script.
 
 begin;
@@ -12,7 +13,9 @@ insert into auth.users (id, email, raw_user_meta_data) values
   ('00000000-0000-0000-0000-00000000000b', 'bruno@example.com',
    '{"name": "Bruno", "picture": "https://example.com/bruno.png"}'),
   ('00000000-0000-0000-0000-00000000000c', 'carla@example.com',
-   '{}');
+   '{}'),
+  ('00000000-0000-0000-0000-00000000000d', 'dani@example.com',
+   '{"full_name": "Dani", "avatar_url": "javascript:alert(1)"}');
 
 -- 1. Trigger: profiles criados com metadados e fallbacks
 do $$
@@ -44,6 +47,14 @@ begin
       and avatar_url is null
   ) then
     raise exception 'FALHOU: fallback sem metadados (Carla) incorreto';
+  end if;
+
+  if not exists (
+    select 1 from public.profiles
+    where id = '00000000-0000-0000-0000-00000000000d'
+      and avatar_url is null
+  ) then
+    raise exception 'FALHOU: avatar_url sem https deveria ser ignorado';
   end if;
 end;
 $$;
@@ -130,5 +141,8 @@ begin
   raise notice 'Todas as verificações passaram';
 end;
 $$;
+
+reset role;
+select 'Todas as verificações passaram' as resultado;
 
 rollback;

@@ -10,12 +10,15 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { getCurrentProfile } from "@/data/profile";
+import { requireUserId } from "@/lib/auth/session";
 
 export const metadata: Metadata = {
   title: "Configurações",
 };
 
 export default async function SettingsPage() {
+  // Layout e página renderizam em paralelo: a página não pode depender do guard do layout.
+  await requireUserId();
   const profile = await getCurrentProfile();
 
   if (!profile) {

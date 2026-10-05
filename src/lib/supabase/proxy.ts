@@ -45,7 +45,11 @@ export async function updateSession(request: NextRequest) {
 
   const { pathname, search } = request.nextUrl;
 
-  if (!isAuthenticated && isProtectedPath(pathname)) {
+  // Server Actions (header next-action) passam direto: um redirect aqui viraria
+  // um fetch de HTML para o client. requireUserId() dentro da action decide.
+  const isServerAction = request.headers.has("next-action");
+
+  if (!isAuthenticated && isProtectedPath(pathname) && !isServerAction) {
     const loginUrl = request.nextUrl.clone();
     loginUrl.pathname = "/";
     loginUrl.search = "";

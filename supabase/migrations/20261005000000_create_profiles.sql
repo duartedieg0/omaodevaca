@@ -49,6 +49,11 @@ as $$
 declare
   meta jsonb := coalesce(new.raw_user_meta_data, '{}'::jsonb);
   user_email text := coalesce(new.email, meta ->> 'email', '');
+  -- Só aceita avatar por https (metadados podem vir de signup fora do Google).
+  avatar text := coalesce(
+    nullif(meta ->> 'avatar_url', ''),
+    nullif(meta ->> 'picture', '')
+  );
 begin
   insert into public.profiles (id, name, email, avatar_url)
   values (
@@ -62,10 +67,7 @@ begin
       100
     ),
     user_email,
-    coalesce(
-      nullif(meta ->> 'avatar_url', ''),
-      nullif(meta ->> 'picture', '')
-    )
+    case when avatar like 'https://%' then avatar else null end
   )
   on conflict (id) do nothing;
 
